@@ -77,13 +77,11 @@ Module Program
 
             If (ret.Trim().ToLower() = "y") Then
                 'undo check out 
-                Console.WriteLine($"Undoing checkout of {axlePart.Name}...")
                 axlePart.UndoLockFile(handle, True)
-                Console.WriteLine($"Undo checkout of {axlePart.Name} = {Not axlePart.IsLocked}")
             Else
-                'check check in 
+                'check check out 
                 Console.WriteLine($"Checking in {axlePart.Name}...")
-                axlePart.UnlockFile(handle, "Checking file back into the vault.", handle)
+                axlePart.UnlockFile(handle, "Checking file back into the vault.", 0)
                 Console.WriteLine($"Checked in {axlePart.Name} = {Not axlePart.IsLocked}")
 
             End If
@@ -98,40 +96,7 @@ Module Program
 
 
     End Sub
-#Region "06"
 
-    Public Function CheckIn(ByVal file As IEdmFile5, Optional comment As String = "", Optional handle As Integer = 0) As Boolean
-        If (file IsNot Nothing) Then
-            file.UnlockFile(handle, comment, handle)
-            Return IsCheckedIn(file)
-        End If
-        Return False
-    End Function
-
-    Public Function Checkout(ByVal file As IEdmFile5, folderID As Integer, Optional handle As Integer = 0) As Boolean
-        If (file IsNot Nothing) Then
-            file.LockFile(handle, folderID)
-            Return IsCheckedOut(file)
-        End If
-        Return False
-    End Function
-
-
-    Public Function IsCheckedOut(ByVal file As IEdmFile5) As Boolean
-        If (file IsNot Nothing) Then
-            Return file.IsLocked
-        End If
-        Return False
-    End Function
-
-    Public Function IsCheckedIn(ByVal file As IEdmFile5) As Boolean
-        If (file IsNot Nothing) Then
-            Return Not file.IsLocked
-        End If
-        Return False
-    End Function
-
-#End Region
 
 #Region "05"
     Public Function GetAllFiles(ByVal folder As IEdmFolder5) As IEdmFile5()
