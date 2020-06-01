@@ -96,11 +96,7 @@ Module Program
 
     End Sub
 
-    Public Function GetFileByName(ByVal str As String) As String
-
-
-    End Function
-
+#Region "03"
     Public Function GetVaultNames(ByVal vault As IEdmVault13, ByVal onlyLogged As Boolean) As String()
 
         Dim vaultViews As EdmViewInfo()
@@ -150,5 +146,6 @@ Module Program
         End Try
     End Function
 
+#End Region
 
 End Module
