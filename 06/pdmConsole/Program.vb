@@ -77,7 +77,9 @@ Module Program
 
             If (ret.Trim().ToLower() = "y") Then
                 'undo check out 
+                Console.WriteLine($"Undoing checkout of {axlePart.Name}...")
                 axlePart.UndoLockFile(handle, True)
+                Console.WriteLine($"Undo checkout of {axlePart.Name} = {Not axlePart.IsLocked}")
             Else
                 'check check out 
                 Console.WriteLine($"Checking in {axlePart.Name}...")
