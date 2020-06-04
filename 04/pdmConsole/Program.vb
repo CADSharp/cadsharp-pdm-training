@@ -58,26 +58,27 @@ Module Program
         Dim rootFolder As IEdmFolder5
         rootFolder = vault.RootFolder
         Dim exampleSubFolder = rootFolder.GetSubFolder("Example")
-        Dim axleFirst = exampleSubFolder.GetFile("axle_&.sldprt")
+        Dim axlePart = exampleSubFolder.GetFile("axle_&.sldprt")
+
 
         'list file meta data
         Console.WriteLine("File data:")
-        Console.WriteLine($"File name: {axleFirst.Name}")
-        Console.WriteLine($"File ID: {axleFirst.ID}")
-        Console.WriteLine($"File Version: {axleFirst.CurrentVersion}")
-        Console.WriteLine($"File Rev: {axleFirst.CurrentRevision}")
-        Console.WriteLine($"File State: {axleFirst.CurrentState.Name}")
+        Console.WriteLine($"File name: {axlePart.Name}")
+        Console.WriteLine($"File ID: {axlePart.ID}")
+        Console.WriteLine($"File Version: {axlePart.CurrentVersion}")
+        Console.WriteLine($"File Rev: {axlePart.CurrentRevision}")
+        Console.WriteLine($"File State: {axlePart.CurrentState.Name}")
 
 
 
         'attempt to get file file from path
         Dim folder As IEdmFolder5
         Dim filePath As String = "C:\PDM2020\Example\Axle_&.sldprt"
-        axleFirst = vault.GetFileFromPath(filePath, folder)
+        axlePart = vault.GetFileFromPath(filePath, folder)
 
         'get file using id 
-        Dim id As Integer = axleFirst.ID
-        axleFirst = vault.GetObject(EdmObjectType.EdmObject_File, id)
+        Dim id As Integer = axlePart.ID
+        axlePart = vault.GetObject(EdmObjectType.EdmObject_File, id)
 
         'get file by doing a search
         Dim search As IEdmSearch5
