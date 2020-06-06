@@ -1,4 +1,5 @@
 ﻿Imports EPDM.Interop.epdm
+Imports System.Collections.Generic
 Module Program
 
     Dim vault As IEdmVault5
@@ -51,55 +52,59 @@ Module Program
         Dim exampleSubFolder = rootFolder.GetSubFolder("Example")
 
         Console.WriteLine("")
-        Console.WriteLine("GetFiles non-recursive:")
+        Console.WriteLine("Get All Files Non-recursive:")
         Console.WriteLine("")
         Dim files = GetAllFiles(exampleSubFolder)
         Console.WriteLine("")
-        Console.WriteLine($"Found {files.Length} files.")
+        Console.WriteLine($"Found: {files.Count} files.")
         Console.WriteLine("")
 
         For Each file As IEdmFile5 In files
             Console.WriteLine(file.Name)
         Next
+
         Console.WriteLine("")
-        Console.WriteLine("GetFiles recursive:")
+        Console.WriteLine("Get All Files recursive:")
         Console.WriteLine("")
 
         files = GetAllFiles(exampleSubFolder, True)
-
         Console.WriteLine("")
-        Console.WriteLine($"Found {files.Length} files.")
+        Console.WriteLine($"Found: {files.Count} files.")
         Console.WriteLine("")
 
         For Each file As IEdmFile5 In files
             Console.WriteLine(file.Name)
         Next
 
-        Console.WriteLine("")
-        Console.WriteLine("GetFiles recursive with cancellation after 1 seconds (method is delayed by 2 seconds):")
-        Console.WriteLine("")
 
-        Dim cancellationRequest = New CancellationRequest()
+        Console.WriteLine("")
+        Console.WriteLine("Get All Files recursive (with cancellation):")
+        Console.WriteLine("")
+        Dim cancellationRequest As New CancellationRequest()
+        Dim completion As CompletionResult_e
         Dim thread = New System.Threading.Thread(New Threading.ThreadStart(Sub()
                                                                                System.Threading.Thread.Sleep(1000)
                                                                                cancellationRequest.Cancel()
+
                                                                            End Sub))
 
         thread.Start()
 
-        Dim completionResult As GetAllResult_e
-        files = GetAllFiles(exampleSubFolder, True, completionResult, cancellationRequest)
-
+        files = GetAllFiles(exampleSubFolder, True, completion, cancellationRequest)
         Console.WriteLine("")
-        Console.WriteLine($"Result: {completionResult.ToString()}")
-        Console.WriteLine($"Found {files.Length} files.")
+        Console.WriteLine($"Completion: {completion.ToString()}")
+        Console.WriteLine($"Found: {files.Count} files.")
         Console.WriteLine("")
 
         For Each file As IEdmFile5 In files
             Console.WriteLine(file.Name)
         Next
 
-#Region "sample code from 03"
+
+
+        Console.ReadLine()
+
+#Region "sample code from 04"
         'Dim axleFirst = exampleSubFolder.GetFile("axle_&.sldprt")
 
         ''list file meta data
@@ -140,90 +145,95 @@ Module Program
 
     End Sub
 
-
-#Region "05"
     Public Function GetAllFiles(ByVal folder As IEdmFolder5) As IEdmFile5()
 
         Dim files As New List(Of IEdmFile5)
 
-        Dim Position = folder.GetFirstFilePosition
-        While Not Position.IsNull
-            Dim iteratingFile = folder.GetNextFile(Position)
+        Dim position = folder.GetFirstFilePosition()
+
+        While Not position.IsNull
+
+            Dim iteratingFile As IEdmFile5
+            iteratingFile = folder.GetNextFile(position)
+
             files.Add(iteratingFile)
+
         End While
 
-        Return files.ToArray()
+        Return files.ToArray
 
     End Function
 
     Public Function GetAllSubFolders(ByVal folder As IEdmFolder5) As IEdmFolder5()
-
         Dim folders As New List(Of IEdmFolder5)
-        Dim Position = folder.GetFirstSubFolderPosition
-        While Not Position.IsNull
-            Dim iteratingSubFolder = folder.GetNextSubFolder(Position)
-            folders.AddRange(GetAllFiles(iteratingSubFolder))
+        Dim position = folder.GetFirstSubFolderPosition
+        While (Not position.IsNull)
+            Dim iteratingSubFolder As IEdmFolder5
+            iteratingSubFolder = folder.GetNextSubFolder(position)
+            folders.Add(iteratingSubFolder)
         End While
-
         Return folders.ToArray()
-
     End Function
-
-    Public Function GetAllFiles(ByVal folder As IEdmFolder5, ByVal recursive As Boolean) As IEdmFile5()
-
+    Public Function GetAllFiles(ByVal folder As IEdmFolder5, ByVal GetAllSubFolders As Boolean) As IEdmFile5()
         Dim files As New List(Of IEdmFile5)
-        If (recursive = False) Then
+
+        If (GetAllSubFolders = False) Then
             Return GetAllFiles(folder)
         Else
-
             files.AddRange(GetAllFiles(folder))
+            Dim position As IEdmPos5 = folder.GetFirstSubFolderPosition()
+            While (Not position.IsNull)
 
-            Dim Position = folder.GetFirstSubFolderPosition
+                Dim iteratingSubFolder As IEdmFolder5
 
-            While Not Position.IsNull
-                Dim iteratingSubFolder = folder.GetNextSubFolder(Position)
-
+                iteratingSubFolder = folder.GetNextSubFolder(position)
                 files.AddRange(GetAllFiles(iteratingSubFolder))
-                Dim iteratingSubFolderFiles = GetAllFiles(iteratingSubFolder, True)
-                files.AddRange(iteratingSubFolderFiles)
+                Dim iteratingSubSubFolderFiles = GetAllFiles(iteratingSubFolder, True)
+                files.AddRange(iteratingSubSubFolderFiles)
 
             End While
-
         End If
+
         Return files.ToArray()
     End Function
-    Public Function GetAllFiles(ByVal folder As IEdmFolder5, ByVal recursive As Boolean, ByRef CompletionResult As GetAllResult_e, Optional ByVal CancellationRequest As ICancellationRequest = Nothing) As IEdmFile5()
+
+    Public Function GetAllFiles(ByVal folder As IEdmFolder5, ByVal GetAllSubFolders As Boolean, ByRef CompletionResult As CompletionResult_e, ByVal CancellationRequest As ICancellationRequest)
         Dim files As New List(Of IEdmFile5)
-        If (recursive = False) Then
+
+        If (GetAllSubFolders = False) Then
             Return GetAllFiles(folder)
         Else
-            files.AddRange(GetAllFiles(folder))
-
             Try
-                Dim Position = folder.GetFirstSubFolderPosition
-                While Not Position.IsNull
-                    Dim iteratingSubFolder = folder.GetNextSubFolder(Position)
-                    files.AddRange(GetAllFiles(iteratingSubFolder))
+
+                files.AddRange(GetAllFiles(folder))
+                Dim position As IEdmPos5 = folder.GetFirstSubFolderPosition()
+                While (Not position.IsNull)
+
+                    Dim iteratingSubFolder As IEdmFolder5
+
+                    iteratingSubFolder = folder.GetNextSubFolder(position)
+
+
                     System.Threading.Thread.Sleep(2000)
-                    'check if user has requested cancellation 
-                    If (CancellationRequest IsNot Nothing) Then
-                        If CancellationRequest.IsCancellationRequested Then
-                            Throw New CancellationRequestThrownException()
-                        End If
+
+                    If (CancellationRequest.IsCancellationRequestThrown) Then
+                        Throw New CancellationRequestThrownException
                     End If
-                    Dim iteratingSubFolderFiles = GetAllFiles(iteratingSubFolder, True)
-                    files.AddRange(iteratingSubFolderFiles)
+
+                    files.AddRange(GetAllFiles(iteratingSubFolder))
+
+                    Dim iteratingSubSubFolderFiles = GetAllFiles(iteratingSubFolder, True)
+                    files.AddRange(iteratingSubSubFolderFiles)
+
                 End While
             Catch ex As CancellationRequestThrownException
-                CompletionResult = GetAllResult_e.CancelledByUser
+                CompletionResult = CompletionResult_e.CancelledByUser
                 Return files.ToArray()
             End Try
-
         End If
-        CompletionResult = GetAllResult_e.Completed
+        CompletionResult = CompletionResult_e.Complete
         Return files.ToArray()
     End Function
-#End Region
 
 #Region "03"
     Public Function GetVaultNames(ByVal vault As IEdmVault13, ByVal onlyLogged As Boolean) As String()
@@ -276,42 +286,39 @@ Module Program
     End Function
 #End Region
 
+    Public Enum CompletionResult_e
+
+        Unknown
+        Complete
+        CancelledByUser
+
+    End Enum
+
+
 End Module
-
-#Region "05- cancellation classes "
-
-Public Enum GetAllResult_e
-    Completed
-    CancelledByUser
-End Enum
-Public Interface ICancellationRequest
-
-    Sub Cancel()
-    Property IsCancellationRequested() As Boolean
-
-End Interface
 
 Public Class CancellationRequestThrownException
     Inherits Exception
-
-
 End Class
+Public Interface ICancellationRequest
+    Sub Cancel()
+    Property IsCancellationRequestThrown() As Boolean
+End Interface
+
 Public Class CancellationRequest
     Implements ICancellationRequest
 
     Dim cancelled As Boolean = False
-    Public Property IsCancellationRequested As Boolean Implements ICancellationRequest.IsCancellationRequested
+    Public Property IsCancellationRequestThrown As Boolean Implements ICancellationRequest.IsCancellationRequestThrown
         Get
             Return cancelled
         End Get
-        Private Set(value As Boolean)
+        Set(value As Boolean)
             cancelled = value
         End Set
     End Property
 
     Public Sub Cancel() Implements ICancellationRequest.Cancel
-        IsCancellationRequested = True
+        IsCancellationRequestThrown = True
     End Sub
 End Class
-
-#End Region
