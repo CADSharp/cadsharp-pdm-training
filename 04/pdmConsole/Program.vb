@@ -53,47 +53,61 @@ Module Program
             Console.WriteLine("Login failed. Please check your credentials.")
         End If
 
-
         'get root folder 
         Dim rootFolder As IEdmFolder5
         rootFolder = vault.RootFolder
-        Dim exampleSubFolder = rootFolder.GetSubFolder("Example")
-        Dim axlePart = exampleSubFolder.GetFile("axle_&.sldprt")
 
+        'get example subfolder 
+        Dim exampleSubFolder As IEdmFolder5
+        exampleSubFolder = rootFolder.GetSubFolder("Example")
 
-        'list file meta data
-        Console.WriteLine("File data:")
+        'get axle part 
+        Dim axlePart As IEdmFile5
+
+        axlePart = exampleSubFolder.GetFile("axle_&.sldprt")
+
+        'print part metadata
+        Console.WriteLine($"Meta data:")
+        Console.WriteLine($"")
+
         Console.WriteLine($"File name: {axlePart.Name}")
         Console.WriteLine($"File ID: {axlePart.ID}")
-        Console.WriteLine($"File Version: {axlePart.CurrentVersion}")
-        Console.WriteLine($"File Rev: {axlePart.CurrentRevision}")
-        Console.WriteLine($"File State: {axlePart.CurrentState.Name}")
+        Console.WriteLine($"File version: {axlePart.CurrentVersion}")
+        Console.WriteLine($"File revision: {axlePart.CurrentRevision}")
+        Console.WriteLine($"File workflow state: {axlePart.CurrentState.Name}")
 
+        'get axle part using file path
 
-
-        'attempt to get file file from path
         Dim folder As IEdmFolder5
-        Dim filePath As String = "C:\PDM2020\Example\Axle_&.sldprt"
+        Dim filePath As String
+        filePath = "C:\PDM2020\Example\axle_&.sldprt"
+
         axlePart = vault.GetFileFromPath(filePath, folder)
 
-        'get file using id 
-        Dim id As Integer = axlePart.ID
+        'get file using GetObject 
+        Dim id As Integer
+        id = axlePart.ID
         axlePart = vault.GetObject(EdmObjectType.EdmObject_File, id)
 
-        'get file by doing a search
+        'get file using pdm search 
         Dim search As IEdmSearch5
         search = vault.CreateSearch()
-        search.FileName = "axle_&.sldprt"
-        search.FindFiles = True
 
-        'find file by search 
-        Console.WriteLine("Searching...")
+        search.FindFiles = True
+        search.FileName = "axle_&.sldprt"
+
+        Console.WriteLine("Searching for file...")
+
         Dim searchResult = search.GetFirstResult()
 
-        While (searchResult IsNot Nothing)
+        While searchResult IsNot Nothing
+
             Console.WriteLine($"Found: {searchResult.Name} [{searchResult.Path}]")
-            searchResult = search.GetNextResult()
+            searchResult = search.GetNextResult
         End While
+
+
+        Console.ReadLine()
 
     End Sub
 
