@@ -129,7 +129,7 @@ Module Program
     End Function
     Public Function CheckOut(ByVal file As IEdmFile5, ByVal folder As IEdmFolder5, Optional handle As Integer = 0) As Boolean
         If (file IsNot Nothing) Then
-            file.LockFile(handle, folder.ID)
+            file.LockFile(folder.ID, handle)
             Return IsCheckedOut(file)
         End If
         Return False
