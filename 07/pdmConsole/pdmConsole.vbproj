@@ -24,6 +24,7 @@
     <OutputPath>bin\Debug\</OutputPath>
     <DocumentationFile>pdmConsole.xml</DocumentationFile>
     <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -50,7 +51,7 @@
   <ItemGroup>
     <Reference Include="EPDM.Interop.epdm, Version=5.21.0.0, Culture=neutral, PublicKeyToken=0625a0c4bb5de148, processorArchitecture=MSIL">
       <HintPath>..\packages\CADSharp.SolidWorks.PDM.2018.0.7\lib\EPDM.Interop.epdm.dll</HintPath>
-      <EmbedInteropTypes>True</EmbedInteropTypes>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
