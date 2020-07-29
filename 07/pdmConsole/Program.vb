@@ -62,113 +62,65 @@ Module Program
         Dim handle As Integer
         handle = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle.ToInt32()
 
-        'get vault variable mgr  
+        'get variable manager 
         Dim variableMgr As IEdmVariableMgr5
         variableMgr = vault
-        ' or get with the CreateUtility
 
-        Dim variableMgr6 As IEdmVariableMgr6 = variableMgr
-        Dim configurationName As String = "@"
-        Dim variableEnumerator As IEdmEnumeratorVariable5
-        variableEnumerator = axlePart.GetEnumeratorVariable()
+        Dim variablesArr = GetAllVariables(variableMgr)
+        Console.WriteLine($"Found {variablesArr.Length} variables:")
 
-
-
-        'print all the variables names
-        Dim allVariableNames = GetAllVariables(variableMgr)
-        'For Each variable In allVariableNames
-        '    Console.WriteLine(variable.Name)
-        'Next
-
-        Dim variableName As String
-        variableName = "Description"
-        'set variable example on checked in file 
-
-        Dim variableSetReturn = SetDataVariableValue(axlePart, variableName, "Some random description", "@")
-        If (variableSetReturn.Item1 = False) Then
-            Console.WriteLine($"Something went wrong. {variableSetReturn.Item2}")
-        End If
-
-        'check axle part out - this also gets the latest version  
-        Dim checkOutRet = CheckOut(axlePart, folder, handle)
-
-        If (checkOutRet) Then
-            Console.WriteLine($"Sucessfully checked out {axlePart.Name}")
-        End If
-
-
-        'get file again after it is being checked out 
-        axlePart = vault.GetFileFromPath(filePath, folder)
-
-        'set the datacard variable description
-        Dim version As Integer = axlePart.CurrentVersion + 1
-        Dim variableValue As String = $"Version is : {version}"
-
-        variableSetReturn = SetDataVariableValue(axlePart, variableName, variableValue, "@")
-        If (variableSetReturn.Item1) Then
-            Console.WriteLine($"Sucessfully set Description to {variableValue}")
-        End If
-
-        'check axlePart back in 
-        CheckIn(axlePart, $"Sat data card variable", handle)
-
-        'check part again and increase variable 
-        CheckOut(axlePart, folder, handle)
-
-        'get file again after it is being checked out 
-        axlePart = vault.GetFileFromPath(filePath, folder)
-
-        'set the datacard variable description
-        variableValue = $"Version is : {version + 1 }"
-        'check axle part back into the vault 
-        variableSetReturn = SetDataVariableValue(axlePart, variableName, variableValue, "@")
-        If (variableSetReturn.Item1) Then
-            Console.WriteLine($"Sucessfully set Description to {variableValue}")
-        End If
-
-        'check axlePart back in 
-        CheckIn(axlePart, $"Set data card variable", handle)
-
-
-        'get value of data card variable using GetVarFromDb
-        Dim Value = GetVariableValueFromDb(axlePart, folder.ID, variableName, "@")
-        Console.WriteLine($"Value using (GetVarFromDb): {Value.ToString()}")
-        'get value of data card variable using GetVar
-        Value = GetDataCardVariableValue(axlePart, folder.ID, variableName, "@")
-        Console.WriteLine($"Value using (GetVar): {Value.ToString()}")
-
-        'get version - 1 version of axle part 
-        axlePart.GetFileCopy(handle, version - 1, folder.ID)
-
-        'get value of data card variable using GetVarFromDb
-        Value = GetVariableValueFromDb(axlePart, folder.ID, variableName, "@")
-        Console.WriteLine($"Value using (GetVarFromDb): {Value.ToString()}")
-
-        'get value of data card variable using GetVar (only works on datacard varaibles)
-        Value = GetDataCardVariableValue(axlePart, folder.ID, variableName, "@")
-        Console.WriteLine($"Value using (GetVar): {Value.ToString()}")
-
-
-        'create variable free-version 
-        Dim variableMgr7 As IEdmVariableMgr7 = variableMgr
-        Dim edmVariableData As EdmVariableData
-        edmVariableData.mbsVariableName = "VersionFreeVariable"
-        edmVariableData.mlEdmVariableFlags = EdmVariableFlags.EdmVar_VerFreeUpdateAll
-        edmVariableData.meType = EdmVariableType.EdmVarType_Bool
-        'add variable 
-
-        variableMgr7.AddVariables(New EdmVariableData() {edmVariableData})
-        'print variables 
-        allVariableNames = GetAllVariables(variableMgr)
-        For Each variable In allVariableNames
-            If (variable.Flags = EdmVariableFlags.EdmVar_VerFreeUpdateAll) Then
-                Console.WriteLine(variable.Name)
-            End If
+        For Each variableElement As IEdmVariable5 In variablesArr
+            Console.WriteLine(variableElement.Name)
         Next
 
-        'edit 
-        variableMgr7.EditVariables(handle)
+        Dim variableName As String = "Description"
+        Dim configurationName As String = "@"
 
+        Dim variableSetReturn = SetDatacardVariableValue(axlePart, variableName, "Some random, value", configurationName)
+        If variableSetReturn.Item1 = False Then
+            Console.WriteLine($"Something went wrong. {variableSetReturn.Item2}")
+        Else
+            Console.WriteLine($"Successfully sat the value of {variableName}.")
+        End If
+
+        Dim checkoutRet = CheckOut(axlePart, folder, handle)
+        If checkoutRet = False Then
+            Console.WriteLine($"Could not checked out {axlePart.Name}")
+        Else
+            Console.WriteLine($"Successfully checked out {axlePart.Name}")
+        End If
+
+        variableSetReturn = SetDatacardVariableValue(axlePart, variableName, "This is the latest version", configurationName)
+
+        If variableSetReturn.Item1 = False Then
+            Console.WriteLine($"Something went wrong. {variableSetReturn.Item2}")
+        Else
+            Console.WriteLine($"Successfully sat the value of {variableName}.")
+        End If
+
+        CheckIn(axlePart, "Changed value of description variable", handle)
+        'get var only works that data card variable
+        Dim variableGetReturn = GetDatacardVariableValue(axlePart, variableName, configurationName)
+
+        Console.WriteLine($"New value of {variableName} : {variableGetReturn.Item3.ToString()}.")
+
+        Dim variableGetFromDbReturn = GetVariableValueFromDb(axlePart, variableName, configurationName)
+        Console.WriteLine($"New value of {variableName} : {variableGetFromDbReturn.Item3.ToString()}. // this is using GetVariableValueFromDb")
+
+        Dim variableGetBySpecificVersionReturn = GetDatacardVariableValueByVersion(axlePart, variableName, axlePart.CurrentVersion - 1, folder.ID, configurationName)
+
+        Console.WriteLine($"New value of {variableName} : {variableGetBySpecificVersionReturn.Item3.ToString()}. // this is using variableGetBySpecificVersionReturn")
+
+
+        Dim variableMgr7 As IEdmVariableMgr7 = variableMgr
+        Dim edmVariableData As EdmVariableData
+        edmVariableData.mbsVariableName = "Version_Free_Variable-"
+        edmVariableData.meType = EdmVariableType.EdmVarType_Bool
+        edmVariableData.mlEdmVariableFlags = EdmVariableFlags.EdmVar_VerFreeUpdateAll
+        variableMgr7.AddVariables(New EdmVariableData() {edmVariableData})
+
+        'edit variables 
+        variableMgr7.EditVariables(handle)
 
         Console.ReadLine()
 
@@ -176,55 +128,97 @@ Module Program
 
 #Region "07"
 
+    Public Function SetDatacardVariableValue(ByVal file As IEdmFile5, ByVal VariableName As String, ByVal Value As Object, Optional ByVal configurationName As String = "@") As Tuple(Of Boolean, String)
+        Dim enumeratorVariable As IEdmEnumeratorVariable5 = Nothing
+        Try
+            enumeratorVariable = file.GetEnumeratorVariable()
+            enumeratorVariable.SetVar(VariableName, configurationName, Value)
+            enumeratorVariable.CloseFile(True)
+            Return New Tuple(Of Boolean, String)(True, String.Empty)
+        Catch ex As COMException
+            If (enumeratorVariable IsNot Nothing) Then
+                enumeratorVariable.CloseFile(True)
+            End If
+            Return New Tuple(Of Boolean, String)(False, ex.Message)
+        End Try
 
-
-    Public Function GetVariableValueFromDb(ByVal file As IEdmFile5, ByVal folderID As Integer, ByVal variableName As String, Optional ByVal configurationName As String = "@") As Object
+    End Function
+    Public Function GetDatacardVariableValue(ByVal file As IEdmFile5, ByVal VariableName As String, Optional ByVal configurationName As String = "@") As Tuple(Of Boolean, String, Object)
+        Dim enumeratorVariable As IEdmEnumeratorVariable5 = Nothing
         Try
             Dim value As Object = Nothing
-            Dim variableEnumerator As IEdmEnumeratorVariable8
-            variableEnumerator = file.GetEnumeratorVariable()
-            variableEnumerator.GetVarFromDb(variableName, configurationName, value)
-            Return value
-        Catch ex As Exception
-            Return Nothing
-        End Try
-    End Function
-    Public Function GetDataCardVariableValue(ByVal file As IEdmFile5, ByVal folderID As Integer, ByVal variableName As String, Optional ByVal configurationName As String = "@") As Object
-        Try
-            Dim value As Object = Nothing
-            Dim variableEnumerator As IEdmEnumeratorVariable5
-            variableEnumerator = file.GetEnumeratorVariable()
-            variableEnumerator.GetVar(variableName, configurationName, value)
-            Return value
-        Catch ex As Exception
-            Return Nothing
-        End Try
-    End Function
-
-    Public Function SetDataVariableValue(ByVal file As IEdmFile5, ByVal variableName As String, ByRef value As Object, Optional ByVal configurationName As String = "@") As Tuple(Of Boolean, String, Object)
-        Dim variableEnumerator As IEdmEnumeratorVariable8 = Nothing
-        Try
-            variableEnumerator = file.GetEnumeratorVariable()
-            variableEnumerator.SetVar(variableName, configurationName, value)
-            variableEnumerator.CloseFile(True)
+            enumeratorVariable = file.GetEnumeratorVariable()
+            enumeratorVariable.GetVar(VariableName, configurationName, Value)
+            enumeratorVariable.CloseFile(True)
             Return New Tuple(Of Boolean, String, Object)(True, String.Empty, value)
         Catch ex As COMException
-            variableEnumerator.CloseFile(True)
+            If (enumeratorVariable IsNot Nothing) Then
+                enumeratorVariable.CloseFile(True)
+            End If
             Return New Tuple(Of Boolean, String, Object)(False, ex.Message, Nothing)
         End Try
+
+    End Function
+    Public Function GetDatacardVariableValueByVersion(ByVal file As IEdmFile5, ByVal VariableName As String, ByVal Version As Integer, ByVal folderID As Integer, Optional ByVal configurationName As String = "@") As Tuple(Of Boolean, String, Object)
+
+        Dim enumeratorVariable As IEdmEnumeratorVariable8 = Nothing
+        Try
+            Dim ppRetVariables As Object() = Nothing
+            Dim getVarData As EdmGetVarData
+            Dim value As Object = Nothing
+            enumeratorVariable = file.GetEnumeratorVariable()
+            enumeratorVariable.GetVersionVars(Version, folderID, ppRetVariables, New String() {configurationName}, getVarData)
+            enumeratorVariable.CloseFile(True)
+
+            For Each ppRetVariable As IEdmVariableValue6 In ppRetVariables
+                If (ppRetVariable.VariableName = VariableName) Then
+                    value = ppRetVariable.GetValue(configurationName)
+                    Exit For
+                End If
+            Next
+
+            Return New Tuple(Of Boolean, String, Object)(True, String.Empty, value)
+        Catch ex As COMException
+            If (enumeratorVariable IsNot Nothing) Then
+                enumeratorVariable.CloseFile(True)
+            End If
+            Return New Tuple(Of Boolean, String, Object)(False, ex.Message, Nothing)
+        End Try
+
+
+
+    End Function
+    Public Function GetVariableValueFromDb(ByVal file As IEdmFile5, ByVal VariableName As String, Optional ByVal configurationName As String = "@") As Tuple(Of Boolean, String, Object)
+        Dim enumeratorVariable As IEdmEnumeratorVariable8 = Nothing
+        Try
+            Dim value As Object = Nothing
+            enumeratorVariable = file.GetEnumeratorVariable()
+            enumeratorVariable.GetVarFromDb(VariableName, configurationName, value)
+            enumeratorVariable.CloseFile(True)
+            Return New Tuple(Of Boolean, String, Object)(True, String.Empty, value)
+        Catch ex As COMException
+            If (enumeratorVariable IsNot Nothing) Then
+                enumeratorVariable.CloseFile(True)
+            End If
+            Return New Tuple(Of Boolean, String, Object)(False, ex.Message, Nothing)
+        End Try
+
     End Function
     Public Function GetAllVariables(ByVal variableMgr As IEdmVariableMgr5) As IEdmVariable5()
+
         Dim variables As New List(Of IEdmVariable5)
-        Dim position = variableMgr.GetFirstVariablePosition
+        Dim position = variableMgr.GetFirstVariablePosition()
         While Not position.IsNull
             Dim iteratingVariable = variableMgr.GetNextVariable(position)
             variables.Add(iteratingVariable)
         End While
+
         Return variables.ToArray()
+
+
     End Function
 
 #End Region
-
 
 #Region "06"
 
