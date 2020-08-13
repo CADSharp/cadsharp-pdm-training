@@ -1,4 +1,5 @@
-﻿Imports System.Runtime.InteropServices
+﻿Imports System.IO
+Imports System.Runtime.InteropServices
 Imports EPDM.Interop.epdm
 Module Program
 
@@ -53,98 +54,89 @@ Module Program
         exampleSubFolder = rootFolder.GetSubFolder("Example")
 
         Dim filePath As String
-        filePath = "C:\PDM2020\Example\axle_.sldprt"
+        filePath = "C:\PDM2020\Example\Full_Grill_Assembly.sldasm"
 
         Dim folder As IEdmFolder5
-        Dim axlePart As IEdmFile5
+        Dim GrillAssemblyFile As IEdmFile5
 
-        axlePart = vault.GetFileFromPath(filePath, folder)
+        GrillAssemblyFile = vault.GetFileFromPath(filePath, folder)
 
         Dim handle As Integer
         handle = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle.ToInt32()
 
-        Dim files = GetAllFiles(folder, True)
+        Dim layoutName As String
+        Dim bominCSV As String
 
-        For Each file As IEdmFile5 In files
-            'assumes that if file is checked out, it is checked out by the user in this program
-            Dim checkOutRet = True
+        layoutName = GetFirstLayoutName(vault)
 
-            If (IsCheckedOut(file) = False) Then
-                Console.WriteLine($"Checking out {file.Name} ...")
-                Dim parentFolder As IEdmFolder5
-                Dim parentFolderPosition = file.GetFirstFolderPosition()
-                parentFolder = file.GetNextFolder(parentFolderPosition)
-                checkOutRet = CheckOut(file, parentFolder, handle)
-            End If
-            Console.WriteLine($"Checked out {file.Name} = {checkOutRet}")
-        Next
+        bominCSV = GetBOMCSV(GrillAssemblyFile, layoutName, "@")
 
-        Dim variables = GetAllVariables(vault)
-
-        variables = variables.Where(Function(ByVal x As IEdmVariable5)
-                                        If x.Name.ToLower() = "vendor" Then
-                                            Return True
-                                        Else
-                                            Return False
-                                        End If
-                                    End Function).ToArray()
-
-        Dim VariableBatchRet = BatchUpdateDataCardVariables(
-            folder,
-            vault,
-            variables,
-            Enumerable.Repeat(Of String)("@", variables.Length).ToArray(),
-            Enumerable.Repeat(Of String)("ABC Manufacturing", variables.Length).ToArray()
-            )
-
-
-        Dim filesList = New List(Of IEdmFile5)
-        filesList.AddRange(files)
-
-        If VariableBatchRet Is Nothing Or VariableBatchRet.Length = 0 Then
-            Console.WriteLine("Finished successfully")
-        Else
-            For Each err As EdmBatchError2 In VariableBatchRet
-                Dim errorMessage As String = String.Empty
-                Dim errorName As String = String.Empty
-                Dim variableName As String = vault.GetObject(EdmObjectType.EdmObject_Variable, err.mlVariableID).Name
-                Dim errFile As IEdmFile5 = vault.GetObject(EdmObjectType.EdmObject_File, err.mlFileID)
-                Dim fileName As String = errFile.Name
-                vault.GetErrorString(err.mlErrorCode, errorMessage, errorName)
-                Console.WriteLine($"Err when setting  {variableName} for [{fileName}] = {errorMessage}")
-
-                If (filesList.Exists(Function(x As IEdmFile5)
-                                         Return x.ID = errFile.ID
-                                     End Function)) Then
-                    errFile.UndoLockFile(handle)
-                    Console.WriteLine($"Undone the checkout [{errFile.Name}]")
-                    filesList.Remove(errFile)
-                End If
-            Next
-
-        End If
-
-
-
-        For Each file As IEdmFile5 In filesList
-
-            'get latest checking state of // file could be checked in by parent
-            file.Refresh()
-
-            If IsCheckedIn(file) = False Then
-
-                Dim checkinRet = CheckIn(file, "Checked in PDM Console", handle)
-                Console.WriteLine($"Checked in {file.Name} = {checkinRet}")
-            Else
-                Console.WriteLine($"file already {file.Name} ")
-            End If
-        Next
-
+        Console.WriteLine(bominCSV)
 
         Console.ReadLine()
 
     End Sub
+#Region "09"
 
+    Public Function GetFirstLayoutName(vault2 As IEdmVault9) As String
+
+        Dim bomMgr As IEdmBomMgr = vault2.CreateUtility(EdmUtility.EdmUtil_BomMgr)
+
+        Dim ppoRetLayouts() As EdmBomLayout = Nothing
+
+        bomMgr.GetBomLayouts(ppoRetLayouts)
+
+        If ppoRetLayouts Is Nothing Or ppoRetLayouts.Length = 0 Then
+            Throw New Exception("Cannot find any BOM layouts.")
+        End If
+
+        Return ppoRetLayouts.First.mbsLayoutName
+
+    End Function
+    Public Function GetBOMCSV(ByVal file As IEdmFile5, ByVal layoutName As String, ByVal configurationName As String) As String
+
+        If file Is Nothing Then
+            Throw New NullReferenceException("the file parameter is null at PDM::GetBOMCSV.")
+        End If
+
+        If String.IsNullOrWhiteSpace(configurationName) Then
+            configurationName = "@"
+        End If
+
+        Try
+            Dim file7 = TryCast(file, IEdmFile7)
+
+            Dim computedBOM = file7.GetComputedBOM(layoutName, 0, configurationName, EdmBomFlag.EdmBf_ShowSelected)
+
+            If computedBOM Is Nothing Then
+                Throw New Exception($"Failed to get computed BOM.", Nothing)
+            End If
+
+            Dim computedBOM3 As IEdmBomView3 = computedBOM
+
+            Dim tempFolder = System.IO.Path.GetTempPath()
+
+            Dim tempFolderDir = New DirectoryInfo(tempFolder)
+
+            Dim bomCSVFilePath = Path.Combine(tempFolderDir.FullName, $"{System.IO.Path.GetFileNameWithoutExtension(file.Name)}--{layoutName}.txt")
+
+            computedBOM3.SaveToCSV(bomCSVFilePath, True)
+
+            Dim txt = System.IO.File.ReadAllText(bomCSVFilePath)
+
+            Return txt
+
+        Catch e As COMException
+            Throw New Exception($"PDM Exception: {e.Message}", e)
+
+        Catch e As Exception
+
+            Throw New Exception($".NET Exception: {e.Message}", e)
+
+        End Try
+    End Function
+
+#End Region
 #Region "08"
     Public Function BatchUpdateDataCardVariables(ByVal folder As IEdmFolder5, ByVal vault7 As IEdmVault7, ByVal Variables As IEdmVariable5(), ByVal configurationNames As String(), ByVal Values As Object()) As EdmBatchError2()
 
