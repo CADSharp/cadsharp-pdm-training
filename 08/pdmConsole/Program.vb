@@ -62,6 +62,82 @@ Module Program
         Dim handle As Integer
         handle = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle.ToInt32()
 
+        Dim files = GetAllFiles(folder, True)
+
+        For Each file As IEdmFile5 In files
+            'assumes that if file is checked out, it is checked out by the user in this program
+            Dim checkOutRet = True
+
+            If (IsCheckedOut(file) = False) Then
+                Console.WriteLine($"Checking out {file.Name} ...")
+                Dim parentFolder As IEdmFolder5
+                Dim parentFolderPosition = file.GetFirstFolderPosition()
+                parentFolder = file.GetNextFolder(parentFolderPosition)
+                checkOutRet = CheckOut(file, parentFolder, handle)
+            End If
+            Console.WriteLine($"Checked out {file.Name} = {checkOutRet}")
+        Next
+
+        Dim variables = GetAllVariables(vault)
+
+        variables = variables.Where(Function(ByVal x As IEdmVariable5)
+                                        If x.Name.ToLower() = "vendor" Then
+                                            Return True
+                                        Else
+                                            Return False
+                                        End If
+                                    End Function).ToArray()
+
+        Dim VariableBatchRet = BatchUpdateDataCardVariables(
+            folder,
+            vault,
+            variables,
+            Enumerable.Repeat(Of String)("@", variables.Length).ToArray(),
+            Enumerable.Repeat(Of String)("ABC Manufacturing", variables.Length).ToArray()
+            )
+
+
+        Dim filesList = New List(Of IEdmFile5)
+        filesList.AddRange(files)
+
+        If VariableBatchRet Is Nothing Or VariableBatchRet.Length = 0 Then
+            Console.WriteLine("Finished successfully")
+        Else
+            For Each err As EdmBatchError2 In VariableBatchRet
+                Dim errorMessage As String = String.Empty
+                Dim errorName As String = String.Empty
+                Dim variableName As String = vault.GetObject(EdmObjectType.EdmObject_Variable, err.mlVariableID).Name
+                Dim errFile As IEdmFile5 = vault.GetObject(EdmObjectType.EdmObject_File, err.mlFileID)
+                Dim fileName As String = errFile.Name
+                vault.GetErrorString(err.mlErrorCode, errorMessage, errorName)
+                Console.WriteLine($"Err when setting  {variableName} for [{fileName}] = {errorMessage}")
+
+                If (filesList.Exists(Function(x As IEdmFile5)
+                                         Return x.ID = errFile.ID
+                                     End Function)) Then
+                    errFile.UndoLockFile(handle)
+                    Console.WriteLine($"Undone the checkout [{errFile.Name}]")
+                    filesList.Remove(errFile)
+                End If
+            Next
+
+        End If
+
+
+
+        For Each file As IEdmFile5 In filesList
+
+            'get latest checking state of // file could be checked in by parent
+            file.Refresh()
+
+            If IsCheckedIn(file) = False Then
+
+                Dim checkinRet = CheckIn(file, "Checked in PDM Console", handle)
+                Console.WriteLine($"Checked in {file.Name} = {checkinRet}")
+            Else
+                Console.WriteLine($"file already {file.Name} ")
+            End If
+        Next
 
 
         Console.ReadLine()
@@ -69,7 +145,90 @@ Module Program
     End Sub
 
 #Region "08"
+    Public Function BatchUpdateDataCardVariables(ByVal folder As IEdmFolder5, ByVal vault7 As IEdmVault7, ByVal Variables As IEdmVariable5(), ByVal configurationNames As String(), ByVal Values As Object()) As EdmBatchError2()
 
+
+        Dim Update As IEdmBatchUpdate2
+        Update = vault7.CreateUtility(EdmUtility.EdmUtil_BatchUpdate)
+        Dim VariableMgr As IEdmVariableMgr5
+        VariableMgr = vault7
+
+
+        Dim Search As IEdmSearch5
+
+        Search = vault7.CreateUtility(EdmUtility.EdmUtil_Search)
+        Search.FindFiles = True
+        Search.FindFolders = False
+        Search.StartFolderID = folder.ID
+
+        Dim Result As IEdmSearchResult5
+        Result = Search.GetFirstResult
+
+        While Not Result Is Nothing
+            For Each variable As IEdmVariable5 In Variables
+                Dim valueIndex As Integer = Array.IndexOf(Variables, variable)
+                Dim configurationIndex = valueIndex
+                Dim value As Object = Values(valueIndex)
+                Dim configurationName As String = configurationNames(configurationIndex)
+                Update.SetVar(Result.ID, variable.ID, value, configurationName, EdmBatchFlags.EdmBatch_AllConfigs)
+                Next
+            Result = Search.GetNextResult
+        End While
+
+
+
+        Dim Errors() As EdmBatchError2 = Nothing
+        Dim errorSize As Integer = Update.CommitUpdate(Errors, Nothing)
+
+        Return Errors
+    End Function
+
+    Public Function BatchCheckIn(ByVal Vault As IEdmVault8, ByVal files() As IEdmFile5, ByVal Handle As Integer, Optional locks As EdmUnlockBuildTreeFlags = EdmUnlockBuildTreeFlags.Eubtf_MayUnlock) As Boolean
+
+        Try
+            ' create batch unlocker object 
+            Dim batchUnlocker As IEdmBatchUnlock2 = Vault.CreateUtility(EdmUtility.EdmUtil_BatchUnlock)
+
+            ' create the selection list 
+            Dim list = New List(Of EdmSelItem)
+
+            Dim selectedFile
+
+            For Each afile In files
+
+                selectedFile = New EdmSelItem
+
+                Dim aPos As IEdmPos5 = afile.GetFirstFolderPosition
+
+                Dim aFolder As IEdmFolder5 = afile.GetNextFolder(aPos)
+
+                selectedFile.mlDocID = afile.ID
+
+                selectedFile.mlProjID = aFolder.ID
+
+                list.Add(selectedFile)
+            Next
+
+
+            Dim ppoSelection() As EdmSelItem = Nothing
+
+            ppoSelection = list.ToArray
+
+            batchUnlocker.AddSelection(Vault, ppoSelection)
+
+            'create tree 
+            batchUnlocker.CreateTree(Handle, locks)
+
+            ' unlock file 
+            batchUnlocker.UnlockFiles(Handle, Nothing)
+
+
+            Return True
+        Catch ex As Exception
+            Return False
+        End Try
+
+    End Function
 
 
 #End Region
