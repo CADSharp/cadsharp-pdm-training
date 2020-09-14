@@ -16,9 +16,6 @@ Module Program
 
     End Sub
 
-
-
-
     Sub Main()
 
         init()
@@ -67,61 +64,76 @@ Module Program
         Dim handle As Integer
         handle = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle.ToInt32()
 
-        Dim layoutName As String = GetFirstLayoutName(vault)
-        Dim bominCSVFormat As String = GetBOMasCSV(GrillAssemblyFile, layoutName, "@")
+        Dim layoutName As String
+        Dim bominCSV As String
 
-        Console.WriteLine(bominCSVFormat)
+        layoutName = GetFirstLayoutName(vault)
+
+        bominCSV = GetBOMCSV(GrillAssemblyFile, layoutName, "@")
+
+        Console.WriteLine(bominCSV)
 
         Console.ReadLine()
 
     End Sub
 #Region "09"
+
     Public Function GetFirstLayoutName(vault2 As IEdmVault9) As String
 
         Dim bomMgr As IEdmBomMgr = vault2.CreateUtility(EdmUtility.EdmUtil_BomMgr)
 
-        Dim retLayouts() As EdmBomLayout = Nothing
+        Dim ppoRetLayouts() As EdmBomLayout = Nothing
 
-        bomMgr.GetBomLayouts(retLayouts)
+        bomMgr.GetBomLayouts(ppoRetLayouts)
 
-        If retLayouts Is Nothing Or retLayouts.Length = 0 Then
-            Throw New Exception(
-            "Cannot find any BOM layouts")
+        If ppoRetLayouts Is Nothing Or ppoRetLayouts.Length = 0 Then
+            Throw New Exception("Cannot find any BOM layouts.")
         End If
-        Return retLayouts.First.mbsLayoutName
-    End Function
 
-    Public Function GetBOMasCSV(ByVal file As IEdmFile5, ByVal layoutName As String, ByVal configurationName As String) As String
+        Return ppoRetLayouts.First.mbsLayoutName
+
+    End Function
+    Public Function GetBOMCSV(ByVal file As IEdmFile5, ByVal layoutName As String, ByVal configurationName As String) As String
+
+        If file Is Nothing Then
+            Throw New NullReferenceException("the file parameter is null at PDM::GetBOMCSV.")
+        End If
+
+        If String.IsNullOrWhiteSpace(configurationName) Then
+            configurationName = "@"
+        End If
 
         Try
-            If file Is Nothing Then
-                Throw New NullReferenceException("The file parameter cannot be null")
-            End If
-            If String.IsNullOrWhiteSpace(configurationName) Then
-                configurationName = "@"
+            Dim file7 = TryCast(file, IEdmFile7)
+
+            Dim computedBOM = file7.GetComputedBOM(layoutName, 0, configurationName, EdmBomFlag.EdmBf_ShowSelected)
+
+            If computedBOM Is Nothing Then
+                Throw New Exception($"Failed to get computed BOM.", Nothing)
             End If
 
-            Dim computedBOM As IEdmBomView3
-            Dim file7 As IEdmFile7
-            file7 = file
-            computedBOM = file7.GetComputedBOM(layoutName, 0, configurationName, EdmBomFlag.EdmBf_AsBuilt)
+            Dim computedBOM3 As IEdmBomView3 = computedBOM
 
             Dim tempFolder = System.IO.Path.GetTempPath()
 
             Dim tempFolderDir = New DirectoryInfo(tempFolder)
 
-            Dim bomCSVFilePath = System.IO.Path.Combine(tempFolderDir.FullName, $"{System.IO.Path.GetFileNameWithoutExtension(file7.Name)}--{layoutName}.txt")
+            Dim bomCSVFilePath = Path.Combine(tempFolderDir.FullName, $"{System.IO.Path.GetFileNameWithoutExtension(file.Name)}--{layoutName}.txt")
 
-            computedBOM.SaveToCSV(bomCSVFilePath, True)
+            computedBOM3.SaveToCSV(bomCSVFilePath, True)
 
-            Dim textContent = System.IO.File.ReadAllText(bomCSVFilePath)
+            Dim txt = System.IO.File.ReadAllText(bomCSVFilePath)
 
-            Return textContent
+            Return txt
 
-        Catch ex As Exception
-            Return String.Empty
+        Catch e As COMException
+            Throw New Exception($"PDM Exception: {e.Message}", e)
+
+        Catch e As Exception
+
+            Throw New Exception($".NET Exception: {e.Message}", e)
+
         End Try
-
     End Function
 
 #End Region
@@ -213,6 +225,8 @@ Module Program
 
 
 #End Region
+
+
 
 #Region "07"
 
