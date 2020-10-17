@@ -8,17 +8,17 @@ Imports System.Runtime.InteropServices
 
 ' Review the values of the assembly attributes
 
-<Assembly: AssemblyTitle("SerializableRefTreeTask")>
+<Assembly: AssemblyTitle("SerializableVariablesTask")>
 <Assembly: AssemblyDescription("")>
 <Assembly: AssemblyCompany("")>
-<Assembly: AssemblyProduct("SerializableRefTreeTask")>
+<Assembly: AssemblyProduct("SerializableVariablesTask")>
 <Assembly: AssemblyCopyright("Copyright ©  2020")>
 <Assembly: AssemblyTrademark("")>
 
 <Assembly: ComVisible(True)>
 
 'The following GUID is for the ID of the typelib if this project is exposed to COM
-<Assembly: Guid("813ae8c1-593a-48af-aefc-013c8ee1b878")>
+<Assembly: Guid("0e750893-3775-455c-af86-fea50c255783")>
 
 ' Version information for an assembly consists of the following four values:
 '

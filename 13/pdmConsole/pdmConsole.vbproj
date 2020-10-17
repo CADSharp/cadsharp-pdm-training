@@ -112,11 +112,5 @@
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\SerializableRefTreeTask\SerializableVariablesTask.vbproj">
-      <Project>{f6301a8a-92bf-44ee-bc89-c92921149296}</Project>
-      <Name>SerializableVariablesTask</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
 </Project>

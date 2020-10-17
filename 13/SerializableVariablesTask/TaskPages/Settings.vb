@@ -1,5 +1,12 @@
 ﻿Imports EPDM.Interop.epdm
 
+
+Public Enum SerializationType
+
+    Json
+    XML
+
+End Enum
 Public Class Settings
 
     Public Const serializationTypeKey As String = "SerializationType"
@@ -9,42 +16,41 @@ Public Class Settings
 
         Dim taskProperties As IEdmTaskProperties = poCmd.mpoExtra
 
+
         'load data from taskproperties 
         Dim serializationType As SerializationType
+
         Dim serializationTypeValEx As String = taskProperties.GetValEx(serializationTypeKey)
+
+        Dim serializtionRet As Boolean
+        serializtionRet = [Enum].TryParse(Of SerializationType)(serializationTypeValEx, True, serializationType)
+
         Dim saveLocation As String
-
-
         saveLocation = taskProperties.GetValEx(saveLocationKey)
-        Dim seriazationRet As Boolean = [Enum].TryParse(Of SerializationType)(serializationTypeValEx, True, serializationType)
-
-
-        saveLocationTxtBox.Text = saveLocation
 
         Select Case serializationType
+            Case SerializationType.Json
+                jsonRadioButton.Checked = True
+                xmlRadioButton.Checked = False
+                Exit Select
             Case SerializationType.XML
                 jsonRadioButton.Checked = False
                 xmlRadioButton.Checked = True
                 Exit Select
-            Case SerializationType.Json
-                jsonRadioButton.Checked = True
-                xmlRadioButton.Checked = false 
-                Exit Select
         End Select
+
+        saveLocationTextBox.Text = saveLocation
 
     End Sub
 
     Public Sub Store(ByRef poCmd As EdmCmd)
-        'store data from task properties
 
         Dim taskProperties As IEdmTaskProperties = poCmd.mpoExtra
-
 
         Dim serializationType As SerializationType
         Dim saveLocation As String
 
-
-        saveLocation = saveLocationTxtBox.Text
+        saveLocation = saveLocationTextBox.Text
 
         If jsonRadioButton.Checked = True Then
             serializationType = SerializationType.Json
@@ -52,8 +58,8 @@ Public Class Settings
             serializationType = SerializationType.XML
         End If
 
-        taskProperties.SetValEx(saveLocationKey, saveLocation)
         taskProperties.SetValEx(serializationTypeKey, serializationType.ToString())
-    End Sub
+        taskProperties.SetValEx(saveLocationKey, saveLocation)
 
+    End Sub
 End Class

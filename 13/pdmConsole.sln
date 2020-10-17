@@ -7,7 +7,7 @@ Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "pdmConsole", "pdmConsole\pd
 EndProject
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CopyPathToClipboardAddIn", "CopyPathToClipboardAddIn\CopyPathToClipboardAddIn.vbproj", "{A4089AE6-67F9-400B-8F67-AD61EC1F38CD}"
 EndProject
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "SerializableVariablesTask", "SerializableRefTreeTask\SerializableVariablesTask.vbproj", "{F6301A8A-92BF-44EE-BC89-C92921149296}"
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "SerializableVariablesTask", "SerializableVariablesTask\SerializableVariablesTask.vbproj", "{146E27FD-9BA7-4E9B-B2CE-D9893E1C7BB0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,10 +23,10 @@ Global
 		{A4089AE6-67F9-400B-8F67-AD61EC1F38CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A4089AE6-67F9-400B-8F67-AD61EC1F38CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A4089AE6-67F9-400B-8F67-AD61EC1F38CD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F6301A8A-92BF-44EE-BC89-C92921149296}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F6301A8A-92BF-44EE-BC89-C92921149296}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F6301A8A-92BF-44EE-BC89-C92921149296}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F6301A8A-92BF-44EE-BC89-C92921149296}.Release|Any CPU.Build.0 = Release|Any CPU
+		{146E27FD-9BA7-4E9B-B2CE-D9893E1C7BB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{146E27FD-9BA7-4E9B-B2CE-D9893E1C7BB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{146E27FD-9BA7-4E9B-B2CE-D9893E1C7BB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{146E27FD-9BA7-4E9B-B2CE-D9893E1C7BB0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -3,10 +3,6 @@ Imports System.Xml.Serialization
 Imports EPDM.Interop.epdm
 Imports Newtonsoft.Json
 
-Public Enum SerializationType
-    XML
-    Json
-End Enum
 Public Class SerializationHelper
 
     Public Shared Function SerializeProperties(ByVal file As IEdmFile5, ByVal serializationType As SerializationType) As String
